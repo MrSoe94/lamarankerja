@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Generator Surat Lamaran Pekerjaan</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  header {
+    text-align: center;
+    color: white;
+    margin-bottom: 25px;
+  }
+  header h1 { font-size: 2.2em; margin-bottom: 8px; }
+  header p { opacity: 0.95; font-size: 1.05em; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    padding: 25px;
+  }
+  .card h2 {
+    color: #4a3f8f;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    font-size: 1.3em;
+  }
+
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #444;
+    font-size: 0.92em;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #ddd;
+    border-radius: 7px;
+    font-size: 0.95em;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 500px) { .row { grid-template-columns: 1fr; } }
+
+  .section-title {
+    background: #f0eeff;
+    color: #4a3f8f;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 18px 0 12px;
+    font-weight: 600;
+    font-size: 0.95em;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  button {
+    padding: 11px 20px;
+    border: none;
+    border-radius: 7px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    flex: 1;
+    min-width: 130px;
+  }
+  button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+  .btn-primary { background: #667eea; color: white; }
+  .btn-success { background: #28a745; color: white; }
+  .btn-warning { background: #ffc107; color: #333; }
+  .btn-danger  { background: #dc3545; color: white; }
+
+  /* ===== Letter preview (KOMPAK – muat 1 lembar A4) ===== */
+  .preview-wrapper {
+    background: #e8e8e8;
+    padding: 20px;
+    border-radius: 10px;
+    max-height: 800px;
+    overflow-y: auto;
+  }
+  #letter {
+    background: white;
+    /* Ukuran A4: 21cm x 29.7cm dengan margin 2cm pada saat cetak */
+    width: 21cm;
+    min-height: 29.7cm;
+    max-width: 100%;
+    padding: 2cm;
+    font-family: 'Times New Roman', serif;
+    font-size: 11pt;
+    line-height: var(--letter-line-height, 1.25);
+    color: #000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin: 0 auto;
+  }
+  #letter p {
+    margin: 0;                    /* tanpa spasi antar paragraf */
+    text-align: justify;
+  }
+  #letter p + p { margin-top: 0; }
+
+  .letter-header { text-align: right; margin-bottom: 10px; }
+  .letter-recipient { margin-bottom: 8px; }
+  .letter-subject { margin-bottom: 8px; }
+  .letter-subject p { font-weight: bold; }
+
+  .data-list { margin: 0 0 6px 0; }
+  .data-list table {
+    border-collapse: separate;
+    border-spacing: 0 var(--data-row-gap, 0px);
+  }
+  .data-list td { vertical-align: top; line-height: inherit; }
+  .data-list td:first-child { padding: 0 var(--label-gap, 8px) 0 0; white-space: nowrap; }
+  .data-list td:nth-child(2) { padding: 0 8px 0 0; }
+  .data-list td:nth-child(3) { padding: 0; }
+
+  .attachments {
+    margin: 0 0 6px var(--attachment-indent, 22px);
+    padding: 0;
+  }
+  .attachments li { line-height: inherit; }
+  .attachments li + li { margin-top: var(--attachment-row-gap, 0px); }
+
+  .signature { margin-top: 18px; text-align: right; }
+  .signature .sign-space { height: 55px; }   /* ruang tanda tangan */
+  .signature .name { font-weight: bold; text-decoration: underline; }
+
+  .template-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+  .template-btn {
+    padding: 8px 14px;
+    background: #f0eeff;
+    color: #4a3f8f;
+    border: 2px solid transparent;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 0.88em;
+    font-weight: 600;
+    flex: 1;
+    min-width: 100px;
+  }
+  .template-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #4a3f8f;
+  }
+
+  .font-size-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .font-size-control select {
+    width: auto;
+    min-width: 140px;
+  }
+
+  .line-spacing-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .line-spacing-control select {
+    width: auto;
+    min-width: 140px;
+  }
+
+  .row-spacing-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .row-spacing-control select {
+    width: auto;
+    min-width: 140px;
+  }
+
+  .spacing-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .spacing-control select {
+    width: auto;
+    min-width: 140px;
+  }
+
+  .checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 7px;
+  }
+  .checkbox-list label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 400;
+    cursor: pointer;
+    font-size: 0.9em;
+  }
+  .checkbox-list input { width: auto; }
+
+  /* ===== PRINT STYLES (HANYA 1 LEMBAR A4) ===== */
+  @page {
+    size: A4 portrait;
+    margin: 0;     /* margin diatur di #letter */
+  }
+  @media print {
+    html, body {
+      background: white !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 210mm;
+      height: auto;
+    }
+    .container {
+      max-width: none !important;
+      margin: 0 !important;
+    }
+    .container > header,
+    .form-card {
+      display: none !important;
+    }
+    .layout {
+      display: block !important;
+    }
+    .layout > .card {
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: white !important;
+    }
+    .layout > .card > h2 {
+      display: none !important;
+    }
+    .preview-wrapper {
+      padding: 0 !important;
+      background: white !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    #letter {
+      position: static !important;
+      width: 210mm !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      padding: 1.5cm !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      background: white !important;
+      overflow: visible !important;
+      page-break-after: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    /* Pastikan tidak ada elemen yang memicu halaman baru */
+    #letter * {
+      page-break-inside: avoid !important;
+      page-break-before: avoid !important;
+      page-break-after: avoid !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📝 Generator Surat Lamaran Pekerjaan</h1>
+    <p>Buat surat lamaran pekerjaan profesional dengan template Indonesia</p>
+  </header>
+
+  <div class="layout">
+    <!-- FORM SECTION -->
+    <div class="card form-card">
+      <h2>Data Pelamar & Lamaran</h2>
+
+      <label style="font-weight:600; color:#444; margin-bottom:8px; display:block;">Pilih Template:</label>
+      <div class="template-selector">
+        <button type="button" class="template-btn active" data-template="formal">Formal</button>
+        <button type="button" class="template-btn" data-template="freshgrad">Fresh Graduate</button>
+        <button type="button" class="template-btn" data-template="berpengalaman">Berpengalaman</button>
+      </div>
+
+      <div class="font-size-control">
+        <label for="fontSize" style="font-weight:600; color:#444; margin:0;">Ukuran Font Surat:</label>
+        <select id="fontSize">
+          <option value="10pt">10 pt</option>
+          <option value="11pt" selected>11 pt</option>
+          <option value="12pt">12 pt</option>
+          <option value="13pt">13 pt</option>
+          <option value="14pt">14 pt</option>
+        </select>
+      </div>
+
+      <div class="line-spacing-control">
+        <label for="lineSpacing" style="font-weight:600; color:#444; margin:0;">Jarak Antar Baris:</label>
+        <select id="lineSpacing">
+          <option value="1.1">Rapat</option>
+          <option value="1.25" selected>Normal</option>
+          <option value="1.4">Lebar</option>
+          <option value="1.6">Lebih Lebar</option>
+        </select>
+      </div>
+
+      <div class="row-spacing-control">
+        <label for="dataRowGap" style="font-weight:600; color:#444; margin:0;">Jarak Baris Data Diri:</label>
+        <select id="dataRowGap">
+          <option value="0px" selected>Rapat</option>
+          <option value="4px">Sedikit</option>
+          <option value="8px">Normal</option>
+          <option value="12px">Lebar</option>
+        </select>
+      </div>
+
+      <div class="row-spacing-control">
+        <label for="attachmentRowGap" style="font-weight:600; color:#444; margin:0;">Jarak Baris Lampiran:</label>
+        <select id="attachmentRowGap">
+          <option value="0px" selected>Rapat</option>
+          <option value="4px">Sedikit</option>
+          <option value="8px">Normal</option>
+          <option value="12px">Lebar</option>
+        </select>
+      </div>
+
+      <div class="spacing-control">
+        <label for="labelGap" style="font-weight:600; color:#444; margin:0;">Spasi Data Diri:</label>
+        <select id="labelGap">
+          <option value="4px">Rapat</option>
+          <option value="8px" selected>Normal</option>
+          <option value="12px">Lebar</option>
+          <option value="16px">Lebih Lebar</option>
+        </select>
+      </div>
+
+      <div class="spacing-control">
+        <label for="attachmentIndent" style="font-weight:600; color:#444; margin:0;">Spasi Lampiran:</label>
+        <select id="attachmentIndent">
+          <option value="18px">Rapat</option>
+          <option value="22px" selected>Normal</option>
+          <option value="28px">Lebar</option>
+          <option value="34px">Lebih Lebar</option>
+        </select>
+      </div>
+
+      <div class="section-title">📍 Tempat & Tanggal</div>
+      <div class="row">
+        <div class="form-group">
+          <label>Kota</label>
+          <input type="text" id="kota" value="Jakarta" />
+        </div>
+        <div class="form-group">
+          <label>Tanggal Surat</label>
+          <input type="date" id="tanggal" />
+        </div>
+      </div>
+
+      <div class="section-title">🏢 Tujuan Surat</div>
+      <div class="form-group">
+        <label>Kepada (Jabatan)</label>
+        <input type="text" id="kepada" value="HRD Manager" />
+      </div>
+      <div class="form-group">
+        <label>Nama Perusahaan</label>
+        <input type="text" id="perusahaan" value="PT Maju Bersama" />
+      </div>
+      <div class="form-group">
+        <label>Alamat Perusahaan</label>
+        <textarea id="alamatPerusahaan">Jl. Sudirman No. 123, Jakarta Pusat</textarea>
+      </div>
+
+      <div class="section-title">💼 Posisi yang Dilamar</div>
+      <div class="form-group">
+        <label>Posisi/Jabatan</label>
+        <input type="text" id="posisi" value="Staff Marketing" />
+      </div>
+      <div class="form-group">
+        <label>Sumber Informasi Lowongan</label>
+        <input type="text" id="sumber" value="website resmi perusahaan" placeholder="contoh: LinkedIn, JobStreet, koran Kompas" />
+      </div>
+      <div class="form-group">
+        <label>Tanggal Info Lowongan (opsional)</label>
+        <input type="text" id="tanggalInfo" placeholder="contoh: 15 Januari 2025" />
+      </div>
+
+      <div class="section-title">👤 Data Diri Pelamar</div>
+      <div class="form-group">
+        <label>Nama Lengkap</label>
+        <input type="text" id="nama" value="Budi Santoso" />
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>Tempat Lahir</label>
+          <input type="text" id="tempatLahir" value="Bandung" />
+        </div>
+        <div class="form-group">
+          <label>Tanggal Lahir</label>
+          <input type="date" id="tanggalLahir" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>Jenis Kelamin</label>
+          <select id="jk">
+            <option value="Laki-laki">Laki-laki</option>
+            <option value="Perempuan">Perempuan</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Agama</label>
+          <input type="text" id="agama" value="Islam" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Pendidikan Terakhir</label>
+        <input type="text" id="pendidikan" value="S1 Manajemen, Universitas Indonesia" />
+      </div>
+      <div class="form-group">
+        <label>Alamat</label>
+        <textarea id="alamat">Jl. Melati No. 45, Jakarta Selatan</textarea>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>No. HP/Telepon</label>
+          <input type="text" id="hp" value="081234567890" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" value="budi.santoso@email.com" />
+        </div>
+      </div>
+
+      <div class="section-title">📎 Lampiran (centang yang akan dilampirkan)</div>
+      <div class="checkbox-list" id="lampiranList">
+        <label><input type="checkbox" value="Daftar Riwayat Hidup (CV)" checked /> Daftar Riwayat Hidup (CV)</label>
+        <label><input type="checkbox" value="Fotokopi Ijazah Terakhir" checked /> Fotokopi Ijazah Terakhir</label>
+        <label><input type="checkbox" value="Fotokopi Transkrip Nilai" checked /> Fotokopi Transkrip Nilai</label>
+        <label><input type="checkbox" value="Fotokopi KTP" checked /> Fotokopi KTP</label>
+        <label><input type="checkbox" value="Fotokopi Kartu Keluarga (KK)" /> Fotokopi Kartu Keluarga (KK)</label>
+        <label><input type="checkbox" value="Pas Foto Terbaru ukuran 4x6" checked /> Pas Foto Terbaru ukuran 4x6</label>
+        <label><input type="checkbox" value="Pas Foto Terbaru ukuran 3x4" /> Pas Foto Terbaru ukuran 3x4</label>
+        <label><input type="checkbox" value="Fotokopi Sertifikat Pendukung" /> Fotokopi Sertifikat Pendukung</label>
+        <label><input type="checkbox" value="Surat Pengalaman Kerja" /> Surat Pengalaman Kerja</label>
+        <label><input type="checkbox" value="SKCK" /> SKCK</label>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" onclick="generateLetter()">🔄 Buat Surat</button>
+        <button class="btn-success" onclick="window.print()">🖨️ Cetak / PDF</button>
+        <button class="btn-warning" onclick="downloadDoc()">📥 Download .doc</button>
+        <button class="btn-danger" onclick="resetForm()">🗑️ Reset</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW SECTION -->
+    <div class="card">
+      <h2>Pratinjau Surat</h2>
+      <div class="preview-wrapper">
+        <div id="letter"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentTemplate = 'formal';
+
+function getFontSize() {
+  return document.getElementById('fontSize').value || '11pt';
+}
+
+function getLineSpacing() {
+  return document.getElementById('lineSpacing').value || '1.25';
+}
+
+function getLabelGap() {
+  return document.getElementById('labelGap').value || '8px';
+}
+
+function getAttachmentIndent() {
+  return document.getElementById('attachmentIndent').value || '22px';
+}
+
+function getDataRowGap() {
+  return document.getElementById('dataRowGap').value || '0px';
+}
+
+function getAttachmentRowGap() {
+  return document.getElementById('attachmentRowGap').value || '0px';
+}
+
+// Template button handler
+document.querySelectorAll('.template-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTemplate = btn.dataset.template;
+    generateLetter();
+  });
+});
+
+// Set today as default date
+document.getElementById('tanggal').valueAsDate = new Date();
+
+// Auto-update on any input change
+document.querySelectorAll('input, textarea, select').forEach(el => {
+  el.addEventListener('input', generateLetter);
+  el.addEventListener('change', generateLetter);
+});
+
+function formatTanggal(dateStr) {
+  if (!dateStr) return '';
+  const bulan = ['Januari','Februari','Maret','April','Mei','Juni',
+                 'Juli','Agustus','September','Oktober','November','Desember'];
+  const d = new Date(dateStr);
+  return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function getValues() {
+  const lampiran = Array.from(document.querySelectorAll('#lampiranList input:checked'))
+    .map(cb => cb.value);
+  return {
+    kota: document.getElementById('kota').value,
+    tanggal: formatTanggal(document.getElementById('tanggal').value),
+    kepada: document.getElementById('kepada').value,
+    perusahaan: document.getElementById('perusahaan').value,
+    alamatPerusahaan: document.getElementById('alamatPerusahaan').value,
+    posisi: document.getElementById('posisi').value,
+    sumber: document.getElementById('sumber').value,
+    tanggalInfo: document.getElementById('tanggalInfo').value,
+    nama: document.getElementById('nama').value,
+    tempatLahir: document.getElementById('tempatLahir').value,
+    tanggalLahir: formatTanggal(document.getElementById('tanggalLahir').value),
+    jk: document.getElementById('jk').value,
+    agama: document.getElementById('agama').value,
+    pendidikan: document.getElementById('pendidikan').value,
+    alamat: document.getElementById('alamat').value,
+    hp: document.getElementById('hp').value,
+    email: document.getElementById('email').value,
+    lampiran: lampiran
+  };
+}
+
+function generateLetter() {
+  const v = getValues();
+  const ttl = v.tempatLahir && v.tanggalLahir ? `${v.tempatLahir}, ${v.tanggalLahir}` : (v.tempatLahir || v.tanggalLahir);
+  const fontSize = getFontSize();
+  const lineSpacing = getLineSpacing();
+  const dataRowGap = getDataRowGap();
+  const attachmentRowGap = getAttachmentRowGap();
+  const labelGap = getLabelGap();
+  const attachmentIndent = getAttachmentIndent();
+
+  const dataDiri = `
+    <table>
+      <tr><td>Nama</td><td>:</td><td>${v.nama}</td></tr>
+      <tr><td>Tempat, Tanggal Lahir</td><td>:</td><td>${ttl}</td></tr>
+      <tr><td>Jenis Kelamin</td><td>:</td><td>${v.jk}</td></tr>
+      <tr><td>Agama</td><td>:</td><td>${v.agama}</td></tr>
+      <tr><td>Pendidikan Terakhir</td><td>:</td><td>${v.pendidikan}</td></tr>
+      <tr><td>Alamat</td><td>:</td><td>${v.alamat}</td></tr>
+      <tr><td>No. HP</td><td>:</td><td>${v.hp}</td></tr>
+      <tr><td>Email</td><td>:</td><td>${v.email}</td></tr>
+    </table>
+  `;
+
+  const lampiranHTML = v.lampiran.length > 0
+    ? `<p>Sebagai bahan pertimbangan, bersama surat ini saya lampirkan:</p>
+       <ol class="attachments">${v.lampiran.map(l => `<li>${l};</li>`).join('')}</ol>`
+    : '';
+
+  let pembuka = '', isi = '', penutup = '';
+  const sumberInfo = v.tanggalInfo
+    ? `Berdasarkan informasi lowongan pekerjaan yang saya peroleh dari ${v.sumber} pada tanggal ${v.tanggalInfo}, `
+    : `Berdasarkan informasi lowongan pekerjaan yang saya peroleh dari ${v.sumber}, `;
+
+  if (currentTemplate === 'formal') {
+    pembuka = `<p>Dengan hormat,</p>
+               <p>${sumberInfo}bahwa ${v.perusahaan} sedang membutuhkan karyawan untuk mengisi posisi <strong>${v.posisi}</strong>. Sehubungan dengan hal tersebut, saya yang bertanda tangan di bawah ini:</p>`;
+    isi = `<p>Dengan ini bermaksud mengajukan lamaran pekerjaan untuk bergabung di ${v.perusahaan} pada posisi <strong>${v.posisi}</strong>. Saya memiliki kondisi kesehatan yang baik, mampu bekerja secara individu maupun tim, serta dapat berkomunikasi dengan baik.</p>`;
+    penutup = `<p>Demikian surat lamaran ini saya buat dengan sebenar-benarnya. Besar harapan saya untuk dapat diberikan kesempatan mengikuti tahap seleksi selanjutnya. Atas perhatian dan kebijaksanaan Bapak/Ibu, saya ucapkan terima kasih.</p>`;
+  } else if (currentTemplate === 'freshgrad') {
+    pembuka = `<p>Dengan hormat,</p>
+               <p>${sumberInfo}saya mengetahui bahwa ${v.perusahaan} sedang membuka lowongan pekerjaan untuk posisi <strong>${v.posisi}</strong>. Saya yang bertanda tangan di bawah ini:</p>`;
+    isi = `<p>Bermaksud mengajukan lamaran pekerjaan sebagai <strong>${v.posisi}</strong> di perusahaan yang Bapak/Ibu pimpin. Sebagai lulusan baru (fresh graduate), saya memiliki semangat tinggi untuk belajar, berkembang, dan berkontribusi secara maksimal. Saya yakin dengan latar belakang pendidikan yang saya miliki serta motivasi yang kuat, saya dapat menjadi bagian yang bermanfaat bagi ${v.perusahaan}.</p>`;
+    penutup = `<p>Demikian surat lamaran ini saya buat dengan sungguh-sungguh. Saya sangat berharap diberikan kesempatan untuk mengikuti tahap wawancara agar dapat menjelaskan lebih lanjut mengenai potensi diri saya. Atas perhatian Bapak/Ibu, saya ucapkan terima kasih.</p>`;
+  } else { // berpengalaman
+    pembuka = `<p>Dengan hormat,</p>
+               <p>${sumberInfo}saya tertarik untuk mengajukan lamaran pekerjaan di ${v.perusahaan} untuk posisi <strong>${v.posisi}</strong>. Adapun data diri saya sebagai berikut:</p>`;
+    isi = `<p>Dengan latar belakang pendidikan dan pengalaman kerja yang saya miliki, saya yakin dapat memberikan kontribusi positif bagi perkembangan ${v.perusahaan}. Saya memiliki kemampuan komunikasi yang baik, terbiasa bekerja dalam tim, mampu bekerja di bawah tekanan, dan memiliki dedikasi tinggi terhadap pekerjaan.</p>`;
+    penutup = `<p>Demikian surat lamaran ini saya sampaikan. Saya sangat berharap dapat diberikan kesempatan untuk mengikuti tahap seleksi lebih lanjut sehingga dapat menjelaskan secara rinci tentang potensi serta pengalaman saya. Atas perhatian dan kesempatan yang diberikan, saya ucapkan terima kasih.</p>`;
+  }
+
+  const html = `
+    <div class="letter-header">
+      <p>${v.kota}, ${v.tanggal}</p>
+    </div>
+
+    <div class="letter-recipient">
+      <p>Kepada Yth.<br>
+      ${v.kepada}<br>
+      ${v.perusahaan}<br>
+      di ${v.alamatPerusahaan}</p>
+    </div>
+
+    <div class="letter-subject">
+      <p>Perihal: Lamaran Pekerjaan</p>
+    </div>
+
+    ${pembuka}
+
+    <div class="data-list">${dataDiri}</div>
+
+    ${isi}
+
+    ${lampiranHTML}
+
+    ${penutup}
+
+    <div class="signature">
+      <p>Hormat saya,</p>
+      <div class="sign-space"></div>
+      <p class="name">${v.nama}</p>
+    </div>
+  `;
+
+  const letter = document.getElementById('letter');
+  letter.style.fontSize = fontSize;
+  letter.style.setProperty('--letter-line-height', lineSpacing);
+  letter.style.setProperty('--data-row-gap', dataRowGap);
+  letter.style.setProperty('--attachment-row-gap', attachmentRowGap);
+  letter.style.setProperty('--label-gap', labelGap);
+  letter.style.setProperty('--attachment-indent', attachmentIndent);
+  letter.innerHTML = html;
+}
+
+function downloadDoc() {
+  const v = getValues();
+  const content = document.getElementById('letter').innerHTML;
+  const html = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset="utf-8"><title>Surat Lamaran</title>
+    <style>
+      @page { size: A4; margin: 2cm; }
+      body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.25; }
+      #letter { font-size: ${getFontSize()}; line-height: ${getLineSpacing()}; }
+      p { margin: 0; text-align: justify; }
+      .letter-header { text-align: right; margin-bottom: 10px; }
+      .letter-recipient { margin-bottom: 8px; }
+      .letter-subject { margin-bottom: 8px; }
+      .letter-subject p { font-weight: bold; }
+      .data-list { margin: 0 0 6px 0; }
+      .data-list table { border-collapse: separate; border-spacing: 0 ${getDataRowGap()}; }
+      .data-list td { vertical-align: top; }
+      .data-list td:first-child { padding: 0 ${getLabelGap()} 0 0; white-space: nowrap; }
+      .data-list td:nth-child(2) { padding: 0 8px 0 0; }
+      .data-list td:nth-child(3) { padding: 0; }
+      .attachments { margin: 0 0 6px ${getAttachmentIndent()}; padding: 0; }
+      .attachments li + li { margin-top: ${getAttachmentRowGap()}; }
+      .signature { margin-top: 18px; text-align: right; }
+      .signature .sign-space { height: 55px; }
+      .signature .name { font-weight: bold; text-decoration: underline; }
+    </style>
+    </head><body><div id="letter" style="--label-gap: ${getLabelGap()}; --attachment-indent: ${getAttachmentIndent()};">${content}</div></body></html>
+  `;
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Surat_Lamaran_${v.nama.replace(/\s+/g,'_')}.doc`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetForm() {
+  if (!confirm('Yakin ingin mereset semua data?')) return;
+  document.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => el.value = '');
+  document.getElementById('tanggal').valueAsDate = new Date();
+  document.getElementById('tanggalLahir').value = '';
+  document.getElementById('fontSize').value = '11pt';
+  document.getElementById('lineSpacing').value = '1.25';
+  document.getElementById('dataRowGap').value = '0px';
+  document.getElementById('attachmentRowGap').value = '0px';
+  document.getElementById('labelGap').value = '8px';
+  document.getElementById('attachmentIndent').value = '22px';
+  generateLetter();
+}
+
+// Initial render
+generateLetter();
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f6babeabc63c8d1',t:'MTc3Nzk0MTM5Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
